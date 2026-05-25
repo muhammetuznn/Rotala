@@ -10,7 +10,11 @@ import placesRouter from './routes/places.js'
 
 export function createApp() {
   const app = express()
-  const corsOrigins = env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+  const corsOriginValue = env.CORS_ORIGIN.trim()
+  const corsOrigins =
+    corsOriginValue === '*'
+      ? true
+      : corsOriginValue.split(',').map((origin) => origin.trim())
 
   app.use(helmet())
   app.use(cors({ origin: corsOrigins, credentials: true }))

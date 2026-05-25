@@ -31,10 +31,13 @@ Backend `backend/.env.example`:
 
 ```bash
 PORT=4000
-MONGODB_URI=mongodb://127.0.0.1:27017/rotala
+# Local:
+# MONGODB_URI=mongodb://127.0.0.1:27017/rotala
+# Atlas (örnek - şifreyi repoya yazma, sadece deploy ortamına/.env'e yaz):
+# MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/rotala?retryWrites=true&w=majority
 JWT_SECRET=change-this-to-a-long-random-secret
 JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost,http://localhost
 ```
 
 ## Backend
