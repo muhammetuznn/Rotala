@@ -5,8 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Rotala',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    androidScheme: 'http',
     cleartext: true,
+  },
+  android: {
+    allowMixedContent: true,
   },
 }
 
