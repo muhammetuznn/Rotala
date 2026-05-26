@@ -210,7 +210,7 @@ function LoadingScreen() {
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f7fbf8] px-4 text-center">
       <div>
-        <div className="mx-auto h-12 w-12 animate-pulse rounded-lg bg-[#1f6f5b]" />
+        <img className="mx-auto h-12 w-12 animate-pulse rounded-lg object-cover" src="/icon.png" alt="" aria-hidden="true" />
         <p className="mt-4 text-sm font-black uppercase tracking-[0.18em] text-[#b45b38]">Rotala açılıyor</p>
       </div>
     </main>

@@ -1,4 +1,4 @@
-import { LogOut, MapPinned, UserRound } from 'lucide-react'
+import { LogOut, UserRound } from 'lucide-react'
 
 type AppHeaderProps = {
   email?: string | null
@@ -12,8 +12,8 @@ export function AppHeader({ email, onLogout }: AppHeaderProps) {
     <header className="sticky top-0 z-20 border-b border-[#e5d9c8] bg-[#fff9ef]/95 px-4 py-3 backdrop-blur md:px-6">
       <div className="mx-auto flex max-w-[1440px] items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3">
-          <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0f6b67] text-white shadow-sm">
-            <MapPinned size={22} aria-hidden="true" />
+          <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#0f6b67] shadow-sm">
+            <img className="h-full w-full object-cover" src="/icon.png" alt="" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <p className="text-xl font-black leading-6 text-[#10251f]">Rotala</p>

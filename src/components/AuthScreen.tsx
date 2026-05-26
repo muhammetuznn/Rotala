@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Compass, Loader2, MapPinned } from 'lucide-react'
+import { Loader2, MapPinned } from 'lucide-react'
 
 type AuthScreenProps = {
   onLogin: (email: string, password: string) => Promise<void>
@@ -36,8 +36,8 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
     <main className="min-h-dvh bg-[#f6f0e5] px-4 py-6 text-[#14231f]">
       <section className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-md flex-col justify-center">
         <div className="mb-8">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0f6b67] text-white shadow-sm">
-            <Compass aria-hidden="true" size={30} />
+          <div className="mb-5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-[#0f6b67] shadow-sm">
+            <img className="h-full w-full object-cover" src="/icon.png" alt="" aria-hidden="true" />
           </div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#b45b38]">Türkiye gezi haritan</p>
           <h1 className="mt-2 text-5xl font-black tracking-normal text-[#10251f]">Rotala</h1>
