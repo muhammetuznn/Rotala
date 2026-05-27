@@ -1,0 +1,57 @@
+name: Deploy to Oracle Cloud
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: rotala-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on Oracle VM
+        env:
+          SSH_KEY: ${{ secrets.ROTALA_ORACLE_SSH_KEY }}
+          SERVER_HOST: 134.98.135.32
+          SERVER_USER: ubuntu
+          APP_DIR: /var/www/rotala
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/rotala_oracle
+          chmod 600 ~/.ssh/rotala_oracle
+          ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/rotala_oracle "$SERVER_USER@$SERVER_HOST" "APP_DIR='$APP_DIR' bash -s" <<'DEPLOY'
+          set -euo pipefail
+
+          cd "$APP_DIR"
+
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+
+          npm ci
+          npm run build
+
+          cd backend
+          npm ci
+          npm run build
+          npm run seed
+
+          sudo systemctl restart rotala-api.service
+          sleep 2
+          sudo systemctl is-active --quiet rotala-api.service
+
+          curl --fail --silent --show-error http://127.0.0.1/ > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1/api/cities > /dev/null
+          DEPLOY
