@@ -1,6 +1,6 @@
 import { geoMercator, geoPath } from 'd3-geo'
-import { Check, ChevronDown, MessageSquare, Star, Trash2, X, MapPin } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Bookmark, Check, ChevronDown, Flag, Heart, Map, MessageSquare, Star, Trash2, X, MapPin } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   getCityExplorePercentage,
@@ -13,8 +13,10 @@ import {
 import { districtPercentage, featureCollectionFromFeatures, normalizeTr, provinceFeatureForCity } from '../lib/geo'
 import { deletePlaceNote, getNotes, savePlaceNote } from '../services/notesApi'
 import { deletePlaceRating, getMyRatings, getPlaceRatingSummary, savePlaceRating, type RatingSummary } from '../services/ratingsApi'
+import heroBackground from '../../Assets/background.png'
 import type { City, Place, UserProgress } from '../types/domain'
 import type { DistrictCollection, ProvinceCollection } from '../types/geo'
+import type { UIEvent } from 'react'
 
 type CityDetailPanelProps = {
   city?: City
@@ -54,7 +56,10 @@ export function CityDetailPanel({
   const [summariesByPlace, setSummariesByPlace] = useState<Record<string, RatingSummary>>({})
   const [savingPlaceIds, setSavingPlaceIds] = useState<string[]>([])
   const [placeDataError, setPlaceDataError] = useState('')
+  const [districtMapCollapsed, setDistrictMapCollapsed] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const districtSectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  const suppressMapCollapseUntilRef = useRef(0)
   const districtProgress = useMemo(() => (city ? getDistrictProgress(city.id, progress) : []), [city, progress])
   const cityPlaces = useMemo(() => (city ? getCityPlaces(city.id) : []), [city])
   const selectedProvince = provinceFeatureForCity(provinces ?? null, city)
@@ -68,6 +73,18 @@ export function CityDetailPanel({
     const projection = geoMercator().fitSize([330, 190], collection)
     return geoPath(projection)
   }, [selectedDistrictFeatures])
+  const scrollToDistrict = useCallback((district: string, collapseMap: boolean) => {
+    if (collapseMap) setDistrictMapCollapsed(true)
+
+    window.setTimeout(() => {
+      const target = districtSectionRefs.current[normalizeTr(district)]
+      const scrollArea = scrollAreaRef.current
+      if (!target || !scrollArea) return
+
+      const targetTop = scrollArea.scrollTop + target.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top - 12
+      scrollArea.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' })
+    }, 80)
+  }, [])
 
   useEffect(() => {
     if (!selectedDistrict) return
@@ -77,10 +94,11 @@ export function CityDetailPanel({
 
     const timeoutId = window.setTimeout(() => {
       setOpenDistricts((current) => (current.includes(matchingDistrict.district) ? current : [...current, matchingDistrict.district]))
+      scrollToDistrict(matchingDistrict.district, true)
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [districtProgress, selectedDistrict])
+  }, [districtProgress, scrollToDistrict, selectedDistrict])
 
   useEffect(() => {
     if (!city || !districtProgress.length) return
@@ -88,7 +106,11 @@ export function CityDetailPanel({
     const preferredDistrict = districtProgress.find((district) => district.district === 'Merkez')?.district ?? districtProgress[0]?.district
     if (!preferredDistrict) return
 
-    const timeoutId = window.setTimeout(() => setOpenDistricts([preferredDistrict]), 0)
+    const timeoutId = window.setTimeout(() => {
+      setOpenDistricts([preferredDistrict])
+      setDistrictMapCollapsed(false)
+    }, 0)
+    districtSectionRefs.current = {}
 
     return () => window.clearTimeout(timeoutId)
   }, [city, districtProgress])
@@ -150,16 +172,25 @@ export function CityDetailPanel({
   function selectDistrictFromMap(district: string) {
     setOpenDistricts((current) => (current.includes(district) ? current : [...current, district]))
     onSelectDistrict?.(district)
+    window.setTimeout(() => scrollToDistrict(district, true), 80)
+  }
 
-    window.setTimeout(() => {
-      const target = document.getElementById(`district-${city?.id}-${normalizeTr(district)}`)
-      const scrollArea = scrollAreaRef.current
-      if (!target || !scrollArea) return
+  function handleDetailScroll(event: UIEvent<HTMLDivElement>) {
+    if (Date.now() < suppressMapCollapseUntilRef.current) return
 
-      const stickyOffset = 248
-      const targetTop = scrollArea.scrollTop + target.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top - stickyOffset
-      scrollArea.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' })
-    }, 80)
+    if (event.currentTarget.scrollTop > 170) {
+      setDistrictMapCollapsed(true)
+    }
+  }
+
+  function expandDistrictMap() {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea || !city) return
+
+    suppressMapCollapseUntilRef.current = Date.now() + 900
+    const mapTop = document.getElementById(`district-map-${city.id}`)?.offsetTop ?? 0
+    scrollArea.scrollTo({ top: Math.max(0, mapTop - 12), behavior: 'smooth' })
+    window.setTimeout(() => setDistrictMapCollapsed(false), 120)
   }
 
   function togglePlaceDetails(placeId: string) {
@@ -250,27 +281,28 @@ export function CityDetailPanel({
     <>
       <button
         aria-label="Şehir detayını kapat"
-        className="fixed inset-0 z-30 bg-[#10251f]/30 lg:hidden"
+        className="mobile-scrim"
         onClick={onClose}
         type="button"
       />
-      <aside className="fixed inset-x-0 bottom-0 z-40 max-h-[88dvh] overflow-hidden rounded-t-2xl border border-[#e0d1bb] bg-[#fffaf0] shadow-2xl lg:sticky lg:top-[88px] lg:z-10 lg:max-h-[calc(100dvh-112px)] lg:rounded-xl lg:shadow-sm">
-        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-[#c7d4ce] lg:hidden" />
-        <div className="flex items-start justify-between gap-3 border-b border-[#eadcc8] p-4">
-          <div className="min-w-0">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#b45b38]">{city.region}</p>
-            <h2 className="mt-1 text-2xl font-black text-[#10251f]">{city.name}</h2>
-            <p className="mt-1 flex items-center gap-1 text-sm font-bold text-[#66726e]">
+      <aside className="city-drawer">
+        <div className="drawer-handle" />
+        <div className="city-hero" style={{ backgroundImage: `url(${heroBackground})` }}>
+          <div className="city-hero-overlay" />
+          <div className="city-title">
+            <p>{city.region} · Plaka {city.plate}</p>
+            <h2>{city.name}</h2>
+            <span>
               <MapPin size={15} aria-hidden="true" />
               {cityManuallyVisited
                 ? 'Manuel gezildi işaretli'
                 : cityHasVisitedPlace
                   ? 'Checklist nedeniyle gezildi sayılıyor'
                   : 'Henüz gezildi işaretlenmedi'}
-            </p>
+            </span>
           </div>
           <button
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[#d8cbb8] bg-white text-[#324942] hover:bg-[#f4ead9]"
+            className="close-detail"
             onClick={onClose}
             title="Paneli kapat"
             type="button"
@@ -280,48 +312,62 @@ export function CityDetailPanel({
         </div>
 
         <div
-          className="max-h-[calc(88dvh-92px)] overflow-y-auto p-4 pb-[calc(20px+env(safe-area-inset-bottom))] lg:max-h-[calc(100dvh-206px)]"
+          className="city-detail-scroll"
+          onScroll={handleDetailScroll}
           ref={scrollAreaRef}
         >
-          <div className="grid grid-cols-[1fr_auto] items-center gap-4 rounded-xl bg-[#f0eadf] p-4">
+          <div className="city-progress-panel">
             <div>
-              <p className="text-sm font-bold text-[#66726e]">Şehir keşfi</p>
-              <p className="mt-1 text-3xl font-black text-[#10251f]">%{explore}</p>
-              <p className="mt-1 text-sm font-bold text-[#66726e]">
+              <p>Şehir keşfi</p>
+              <strong>%{explore}</strong>
+              <span>
                 {completed} / {cityPlaces.length} yer tamamlandı
-              </p>
+              </span>
             </div>
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-xl font-black text-[#0f6b67] shadow-sm">
+            <div className="plate-orbit">
               {city.plate}
             </div>
           </div>
 
-          <button
-            className={clsx(
-              'mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-base font-black shadow-sm transition',
-              cityManuallyVisited ? 'bg-[#fff0ec] text-[#a33d24]' : 'bg-[#0f6b67] text-white hover:bg-[#0b5c58]',
-            )}
-            onClick={() => onToggleCityVisited(city.id)}
-            type="button"
-          >
-            <Check size={18} aria-hidden="true" />
-            {cityManuallyVisited ? 'Şehir gezildi işaretini kaldır' : cityVisited ? 'Şehri ayrıca gezildi işaretle' : 'Bu şehre gittim'}
-          </button>
+          <div className="action-tiles">
+            <button className={clsx('action-tile', cityManuallyVisited && 'action-tile--active')} onClick={() => onToggleCityVisited(city.id)} type="button">
+              <Check size={18} aria-hidden="true" />
+              <span>{cityManuallyVisited ? 'Gezildi' : cityVisited ? 'Gezildi sayılıyor' : 'Gezildi işaretle'}</span>
+            </button>
+            <button className="action-tile" type="button">
+              <Flag size={18} aria-hidden="true" />
+              <span>Gitmek istiyorum</span>
+            </button>
+            <button className="action-tile" type="button">
+              <Heart size={18} aria-hidden="true" />
+              <span>Favori</span>
+            </button>
+            <button className="action-tile" type="button">
+              <MessageSquare size={18} aria-hidden="true" />
+              <span>Not ekle</span>
+            </button>
+          </div>
 
           {city && districtPath && selectedDistrictFeatures.length > 0 && (
-            <div className="sticky top-0 z-20 -mx-4 mt-4 border-y border-[#eadcc8] bg-[#fffaf0]/95 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
-              <div className="mb-2 flex items-center justify-between gap-3">
+            <div
+              className={clsx(
+                'mobile-district-map',
+                districtMapCollapsed && 'mobile-district-map--collapsed',
+              )}
+              id={`district-map-${city.id}`}
+            >
+              <div className="district-map-head">
                 <div>
-                  <p className="text-sm font-black text-[#10251f]">{city.name} ilçe haritası</p>
-                  <p className="text-xs font-bold text-[#66726e]">İlçeye dokun, listedeki yerine git.</p>
+                  <p>{city.name} ilçe haritası</p>
+                  <span>İlçeye dokun, listedeki yerine git.</span>
                 </div>
-                <span className="rounded-lg bg-white px-2 py-1 text-sm font-black text-[#0f6b67]">{city.plate}</span>
+                <b>{city.plate}</b>
               </div>
-              <div className="overflow-hidden rounded-xl border border-[#dfe8e3] bg-[#f7fbf8]">
-                <svg className="block h-auto w-full" role="img" viewBox="0 0 330 190" aria-label={`${city.name} ilçe seçim haritası`}>
+              <div className="drawer-district-map">
+                <svg role="img" viewBox="0 0 330 190" aria-label={`${city.name} ilçe seçim haritası`}>
                   {selectedDistrictFeatures.map((feature) => {
                     const percentage = districtPercentage(feature, city, progress)
-                    const fill = percentage >= 100 ? '#d9a441' : percentage >= 50 ? '#0f6b67' : percentage > 0 ? '#8fc7a8' : '#d8e0da'
+                    const fill = percentage >= 100 ? '#c49a4a' : percentage >= 50 ? '#84713f' : percentage > 0 ? '#56685a' : '#263832'
                     const selected = selectedDistrict && normalizeTr(selectedDistrict) === normalizeTr(feature.properties.NAME_2)
 
                     return (
@@ -336,7 +382,7 @@ export function CityDetailPanel({
                           if (event.key === 'Enter' || event.key === ' ') selectDistrictFromMap(feature.properties.NAME_2)
                         }}
                         role="button"
-                        stroke={selected ? '#10251f' : '#ffffff'}
+                        stroke={selected ? '#d8ad5b' : '#11241f'}
                         strokeWidth={selected ? '2.75' : '1'}
                         tabIndex={0}
                       >
@@ -351,8 +397,19 @@ export function CityDetailPanel({
             </div>
           )}
 
-          <div className="mt-5 space-y-3">
-            {placeDataError && <p className="rounded-md bg-[#fff0ec] px-3 py-2 text-sm font-semibold text-[#a33d24]">{placeDataError}</p>}
+          {city && districtPath && selectedDistrictFeatures.length > 0 && districtMapCollapsed && (
+            <button
+              className="district-map-fab"
+              onClick={expandDistrictMap}
+              type="button"
+            >
+              <Map size={17} aria-hidden="true" />
+              <span>Harita</span>
+            </button>
+          )}
+
+          <div className="place-list">
+            {placeDataError && <p className="place-error">{placeDataError}</p>}
 
             {districtProgress.map((district) => {
               const open = openDistricts.includes(district.district)
@@ -362,35 +419,38 @@ export function CityDetailPanel({
                 <section
                   id={`district-${city.id}-${normalizeTr(district.district)}`}
                   key={district.district}
+                  ref={(element) => {
+                    districtSectionRefs.current[normalizeTr(district.district)] = element
+                  }}
                   className={clsx(
-                    'overflow-hidden rounded-xl border bg-white',
-                    selected ? 'border-[#0f6b67] ring-2 ring-[#b8dac8]' : 'border-[#eadcc8]',
+                    'district-section',
+                    selected && 'district-section--selected',
                   )}
                 >
                   <button
-                    className={clsx('flex min-h-16 w-full items-center justify-between gap-3 px-3 py-3 text-left', selected && 'bg-[#edf7f2]')}
+                    className="district-toggle"
                     onClick={() => toggleDistrict(district.district)}
                     type="button"
                   >
                     <span>
-                      <span className="block text-base font-black text-[#213a32]">
+                      <span>
                         {district.district}
-                        {selected && <span className="ml-2 text-xs font-black uppercase tracking-wide text-[#0f6b67]">Haritada seçili</span>}
+                        {selected && <em>Haritada seçili</em>}
                       </span>
-                      <span className="mt-1 block text-sm font-bold text-[#66726e]">
+                      <small>
                         {district.completed} / {district.total} tamamlandı
-                      </span>
+                      </small>
                     </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      <span className="text-sm font-black text-[#0f6b67]">%{district.percentage}</span>
+                    <span>
+                      <b>%{district.percentage}</b>
                       <ChevronDown className={clsx('transition', open && 'rotate-180')} size={18} aria-hidden="true" />
                     </span>
                   </button>
-                  <div className="mx-3 mb-3 h-1.5 overflow-hidden rounded-full bg-[#e8dfd1]">
-                    <div className="h-full rounded-full bg-[#d88355] transition-all duration-500" style={{ width: `${district.percentage}%` }} />
+                  <div className="district-line">
+                    <i style={{ width: `${district.percentage}%` }} />
                   </div>
                   {open && (
-                    <div className="border-t border-[#eadcc8]">
+                    <div className="district-places">
                       {district.places.map((place) => {
                         const checked = progress.visitedPlaceIds.includes(place.id)
                         const detailsOpen = openPlaceIds.includes(place.id)
@@ -400,68 +460,68 @@ export function CityDetailPanel({
                         const editingNote = editingNotePlaceIds.includes(place.id) || !savedNote
 
                         return (
-                          <div className="border-b border-[#f0e4d2] px-3 py-3 last:border-b-0" key={place.id}>
-                            <div className="flex min-h-14 items-start gap-3">
+                          <div className="place-row" key={place.id}>
+                            <div className="place-row-main">
                               <button
                                 aria-label={checked ? `${place.name} gezildi işaretini kaldır` : `${place.name} gezildi işaretle`}
                                 className={clsx(
-                                  'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition',
-                                  checked ? 'border-[#0f6b67] bg-[#0f6b67] text-white' : 'border-[#cdd8d2] bg-[#fbfcfb] text-transparent',
+                                  'outline-indicator',
+                                  checked && 'outline-indicator--checked',
                                 )}
                                 onClick={() => onTogglePlace(city.id, place.id)}
                                 type="button"
                               >
                                 <Check size={17} aria-hidden="true" />
                               </button>
-                              <div className="min-w-0 flex-1">
-                                <p className={clsx('text-sm font-black text-[#243a34]', checked && 'line-through opacity-60')}>
+                              <div className="place-copy">
+                                <p className={clsx(checked && 'place-done')}>
                                   {place.name}
                                 </p>
-                                <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[#7a8782]">
+                                <span>
                                   {place.district} · {place.category} · {priorityLabel[place.priority] ?? place.priority}
-                                </p>
-                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-black text-[#66726e]">
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-[#f3f0e9] px-2 py-1">
+                                </span>
+                                <div className="place-meta">
+                                  <small>
                                     <Star size={13} aria-hidden="true" />
                                     {summary?.voteCount ? `${summary.averageRating}/10 · ${summary.voteCount} oy` : 'Puan yok'}
-                                  </span>
+                                  </small>
                                   {ratingsByPlace[place.id] && (
-                                    <span className="rounded-md bg-[#edf7f2] px-2 py-1 text-[#0f6b67]">Sen: {ratingsByPlace[place.id]}/10</span>
+                                    <small>Sen: {ratingsByPlace[place.id]}/10</small>
                                   )}
                                   {savedNote && (
-                                    <span className="inline-flex items-center gap-1 rounded-md bg-[#fff7eb] px-2 py-1 text-[#a05a1f]">
+                                    <small>
                                       <MessageSquare size={13} aria-hidden="true" />
                                       Not var
-                                    </span>
+                                    </small>
                                   )}
                                 </div>
                               </div>
                               <button
                                 aria-label="Not ve puan"
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#d8cbb8] bg-white text-[#324942] hover:bg-[#f4ead9]"
+                                className="save-place"
                                 onClick={() => togglePlaceDetails(place.id)}
                                 title="Not ve puan"
                                 type="button"
                               >
-                                <MessageSquare size={16} aria-hidden="true" />
+                                <Bookmark size={16} aria-hidden="true" />
                               </button>
                             </div>
 
                             {detailsOpen && (
-                              <div className="mt-3 rounded-xl bg-[#f7f1e8] p-3">
-                                <div className="grid gap-3">
+                              <div className="place-details">
+                                <div>
                                   <div>
-                                    <p className="text-xs font-black uppercase tracking-wide text-[#66726e]">
+                                    <p className="field-label">
                                     Puan
                                     </p>
-                                    <div className="mt-2 grid grid-cols-5 gap-2">
+                                    <div className="rating-grid">
                                       {Array.from({ length: 10 }, (_, index) => index + 1).map((rating) => (
                                         <button
                                           className={clsx(
-                                            'h-10 rounded-lg border text-sm font-black transition',
+                                            'rating-button',
                                             ratingsByPlace[place.id] === rating
-                                              ? 'border-[#0f6b67] bg-[#0f6b67] text-white'
-                                              : 'border-[#d8cbb8] bg-white text-[#263a34] hover:bg-[#f4ead9]',
+                                              ? 'rating-button--active'
+                                              : '',
                                           )}
                                           disabled={saving}
                                           key={rating}
@@ -474,7 +534,7 @@ export function CityDetailPanel({
                                     </div>
                                     {ratingsByPlace[place.id] && (
                                       <button
-                                        className="mt-2 text-xs font-black text-[#a33d24]"
+                                        className="remove-rating"
                                         disabled={saving}
                                         onClick={() => void handleRatingChange(place, '')}
                                         type="button"
@@ -486,10 +546,10 @@ export function CityDetailPanel({
 
                                   <div>
                                     <div className="flex items-center justify-between gap-3">
-                                      <p className="text-xs font-black uppercase tracking-wide text-[#66726e]">Yorum / Not</p>
+                                      <p className="field-label">Yorum / Not</p>
                                       {savedNote && !editingNote && (
                                         <button
-                                          className="text-xs font-black text-[#0f6b67]"
+                                          className="inline-edit"
                                           disabled={saving}
                                           onClick={() => setNoteEditing(place.id, true)}
                                           type="button"
@@ -500,13 +560,13 @@ export function CityDetailPanel({
                                     </div>
 
                                     {savedNote && !editingNote ? (
-                                      <div className="mt-2 rounded-xl border border-[#eadcc8] bg-white/70 px-3 py-2 text-sm font-semibold leading-6 text-[#4f5d56]">
+                                      <div className="saved-note">
                                         {savedNote}
                                       </div>
                                     ) : (
                                       <label className="block" htmlFor={`${place.id}-note`}>
                                         <textarea
-                                          className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[#d6ddda] bg-white px-3 py-2 text-sm font-semibold normal-case text-[#243a34] outline-none ring-[#0f6b67] focus:ring-2"
+                                          className="note-area"
                                           disabled={saving}
                                           id={`${place.id}-note`}
                                           maxLength={1000}
@@ -521,9 +581,9 @@ export function CityDetailPanel({
                                   </div>
                                 </div>
 
-                                <div className="mt-3 flex items-center justify-end gap-2">
+                                <div className="note-actions">
                                   <button
-                                    className="flex h-9 w-9 items-center justify-center rounded-md border border-[#e2c6bd] text-[#a33d24] hover:bg-[#fff0ec]"
+                                    className="delete-note"
                                     disabled={saving}
                                     onClick={() => void handleNoteDelete(place)}
                                     title="Notu sil"
@@ -533,7 +593,7 @@ export function CityDetailPanel({
                                   </button>
                                   {editingNote ? (
                                     <button
-                                      className="h-10 rounded-lg bg-[#0f6b67] px-4 text-sm font-black text-white hover:bg-[#0b5c58] disabled:opacity-60"
+                                      className="save-note"
                                       disabled={saving}
                                       onClick={() => void handleNoteSave(place)}
                                       type="button"
@@ -542,7 +602,7 @@ export function CityDetailPanel({
                                     </button>
                                   ) : (
                                     <button
-                                      className="h-10 rounded-lg border border-[#d8cbb8] bg-white px-4 text-sm font-black text-[#4f5d56]"
+                                      className="secondary-note"
                                       disabled={saving}
                                       onClick={() => setNoteEditing(place.id, true)}
                                       type="button"
