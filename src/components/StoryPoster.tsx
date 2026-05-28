@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Download, Send, Share2 } from 'lucide-react'
+import { Download, Smartphone } from 'lucide-react'
 import { geoMercator, geoPath } from 'd3-geo'
 import { cities } from '../data/cities'
 import storyPosterBackground from '../assets/story-poster-cappadocia.png'
@@ -13,7 +13,7 @@ type StoryPosterProps = {
   provinces: ProvinceCollection | null
 }
 
-type ShareTarget = 'instagram' | 'facebook' | 'native'
+type ShareTarget = 'instagram' | 'facebook'
 
 const posterStyle = `
   .poster-title { font-family: "Cormorant Garamond", Georgia, serif; font-size: 114px; font-weight: 700; letter-spacing: 0; fill: #fff1d6; }
@@ -29,8 +29,9 @@ const posterStyle = `
 `
 
 const visitedPosterColors = ['#f0b85d', '#d96f55', '#40b8aa', '#a98be4', '#e7c84f', '#5fb2d6']
-const appShareUrl = 'http://134.98.135.32'
-const appShareLabel = '134.98.135.32'
+const appShareUrl = 'https://rotala.online'
+const appShareLabel = 'rotala.online'
+const androidApkUrl = '/downloads/Rotala.apk'
 
 async function blobToDataUrl(blob: Blob) {
   return await new Promise<string>((resolve, reject) => {
@@ -125,7 +126,7 @@ function SocialGlyph({ target }: { target: ShareTarget }) {
     return <span className="social-glyph social-glyph--facebook" aria-hidden="true" />
   }
 
-  return <Share2 size={17} aria-hidden="true" />
+  return null
 }
 
 export function StoryPoster({ progress, provinces }: StoryPosterProps) {
@@ -166,12 +167,6 @@ export function StoryPoster({ progress, provinces }: StoryPosterProps) {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          text,
-          title: 'Rotala keşif posterin',
-          url: appShareUrl,
-        })
-      } else if (target === 'native' && navigator.share) {
-        await navigator.share({
           text,
           title: 'Rotala keşif posterin',
           url: appShareUrl,
@@ -289,8 +284,12 @@ export function StoryPoster({ progress, provinces }: StoryPosterProps) {
             </g>
           </g>
 
-          <text x="540" y="1810" textAnchor="middle" className="poster-small">Rotala ile iz bırak</text>
-          <text x="540" y="1854" textAnchor="middle" className="poster-body">{appShareLabel}</text>
+          <text x="540" y="1790" textAnchor="middle" className="poster-small">Rotala ile iz bırak</text>
+          <g transform="translate(274 1818)">
+            <rect width="532" height="72" rx="36" fill="#fff1d6" fillOpacity="0.1" stroke="#f0b85d" strokeOpacity="0.54" strokeWidth="2" />
+            <text x="266" y="47" textAnchor="middle" className="poster-body">{appShareLabel}</text>
+          </g>
+          <text x="540" y="1916" textAnchor="middle" className="poster-small">haritana buradan başla</text>
         </svg>
       </div>
 
@@ -307,10 +306,10 @@ export function StoryPoster({ progress, provinces }: StoryPosterProps) {
           <SocialGlyph target="facebook" />
           <span>{busyAction === 'facebook' ? 'Açılıyor' : 'Facebook'}</span>
         </button>
-        <button className="story-action story-action--native" onClick={() => handleShare('native')} type="button" disabled={busyAction !== null}>
-          <Send size={17} aria-hidden="true" />
-          <span>{busyAction === 'native' ? 'Açılıyor' : 'Paylaş'}</span>
-        </button>
+        <a className="story-action story-action--android" href={androidApkUrl} download="Rotala.apk">
+          <Smartphone size={17} aria-hidden="true" />
+          <span>Android APK indir</span>
+        </a>
       </div>
     </section>
   )

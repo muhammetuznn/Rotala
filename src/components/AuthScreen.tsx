@@ -9,9 +9,9 @@ type AuthScreenProps = {
 }
 
 export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [email, setEmail] = useState('demo@rotala.app')
-  const [password, setPassword] = useState('rotala-demo')
+  const [mode, setMode] = useState<'login' | 'register'>('register')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
 

@@ -76,6 +76,7 @@ export function CityDetailPanel({
   const [districtMapCollapsed, setDistrictMapCollapsed] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const districtSectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  const initializedCityIdRef = useRef<number | null>(null)
   const suppressMapCollapseUntilRef = useRef(0)
   const districtProgress = useMemo(() => (city ? getDistrictProgress(city.id, progress) : []), [city, progress])
   const cityPlaces = useMemo(() => (city ? getCityPlaces(city.id) : []), [city])
@@ -90,6 +91,11 @@ export function CityDetailPanel({
     const projection = geoMercator().fitSize([330, 190], collection)
     return geoPath(projection)
   }, [selectedDistrictFeatures])
+  const selectedProgressDistrict = useMemo(() => {
+    if (!selectedDistrict) return null
+
+    return districtProgress.find((district) => normalizeTr(district.district) === normalizeTr(selectedDistrict))?.district ?? null
+  }, [districtProgress, selectedDistrict])
   const scrollToDistrict = useCallback((district: string, collapseMap: boolean) => {
     if (collapseMap) setDistrictMapCollapsed(true)
 
@@ -104,21 +110,21 @@ export function CityDetailPanel({
   }, [])
 
   useEffect(() => {
-    if (!selectedDistrict) return
-
-    const matchingDistrict = districtProgress.find((district) => normalizeTr(district.district) === normalizeTr(selectedDistrict))
-    if (!matchingDistrict) return
+    if (!selectedProgressDistrict) return
 
     const timeoutId = window.setTimeout(() => {
-      setOpenDistricts((current) => (current.includes(matchingDistrict.district) ? current : [...current, matchingDistrict.district]))
-      scrollToDistrict(matchingDistrict.district, true)
+      setOpenDistricts((current) => (current.includes(selectedProgressDistrict) ? current : [...current, selectedProgressDistrict]))
+      scrollToDistrict(selectedProgressDistrict, true)
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [districtProgress, scrollToDistrict, selectedDistrict])
+  }, [scrollToDistrict, selectedProgressDistrict])
 
   useEffect(() => {
     if (!city || !districtProgress.length) return
+    if (initializedCityIdRef.current === city.id) return
+
+    initializedCityIdRef.current = city.id
 
     const preferredDistrict = districtProgress.find((district) => district.district === 'Merkez')?.district ?? districtProgress[0]?.district
     if (!preferredDistrict) return

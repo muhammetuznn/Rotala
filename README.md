@@ -27,6 +27,11 @@ Frontend `.env.example`:
 VITE_API_URL=http://localhost:4000/api
 ```
 
+Production'da Oracle Cloud sunucusunda frontend ve backend ayni domain altinda
+Nginx ile yayinlanacaksa `VITE_API_URL` vermeden build alinabilir; frontend
+otomatik olarak `/api` adresine istek atar. API ayri subdomain uzerindeyse
+build sirasinda `VITE_API_URL=https://api.rotala.online/api` kullan.
+
 Backend `backend/.env.example`:
 
 ```bash
@@ -37,8 +42,20 @@ PORT=4000
 # MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/rotala?retryWrites=true&w=majority
 JWT_SECRET=change-this-to-a-long-random-secret
 JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost,http://localhost,https://localhost
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost,http://localhost,https://localhost,https://rotala.online,https://www.rotala.online
 ```
+
+## Oracle Cloud / rotala.online
+
+Onerilen kurulum:
+
+- DNS `A` kaydi: `rotala.online` -> Oracle Cloud public IPv4
+- DNS `A` kaydi: `www.rotala.online` -> Oracle Cloud public IPv4
+- Nginx frontend'i `dist/` klasorunden servis eder.
+- Nginx `/api` isteklerini backend'in calistigi porta, varsayilan olarak
+  `http://127.0.0.1:4000`, proxy eder.
+- Backend production `.env` icinde `CORS_ORIGIN=https://rotala.online,https://www.rotala.online`
+  olacak sekilde ayarlanir.
 
 ## Backend
 

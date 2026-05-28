@@ -1,4 +1,4 @@
-# 81 İz - Mobile First & Responsive UI/UX Dokümanı
+Rotala - Mobile First & Responsive UI/UX Dokümanı
 
 ## 1. Amaç
 

@@ -1,6 +1,6 @@
+import clsx from 'clsx'
 import { geoMercator, geoPath } from 'd3-geo'
 import { useMemo, useRef, useState } from 'react'
-import clsx from 'clsx'
 import { getCityExplorePercentage, getCityTone, getDistrictProgress, isCityVisited } from '../lib/progress'
 import { cityFromProvince, districtPercentage, featureCollectionFromFeatures, normalizeTr, provinceFeatureForCity } from '../lib/geo'
 import type { City, UserProgress } from '../types/domain'
@@ -83,7 +83,7 @@ export function BoundaryMap({
   }
 
   return (
-    <section id="map" className="map-panel">
+    <section id="map" className={clsx('map-panel', selectedCity && 'map-panel--city-selected')}>
       <div className="map-panel-head">
         <div className="map-legend">
           <span><i className="legend-empty" />Başlamadı</span>

@@ -63,8 +63,8 @@ button {
 }
 
 .rotala-shell--home {
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 .rotala-bg {
@@ -1662,6 +1662,7 @@ button {
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0;
+  text-decoration: none;
   transition: transform 260ms ease, border-color 260ms ease, background 260ms ease, color 260ms ease;
 }
 
@@ -1684,8 +1685,12 @@ button {
   background: rgba(51, 92, 154, 0.22);
 }
 
-.story-action--native {
+.story-action--android {
   grid-column: 1 / -1;
+  border-color: rgba(64, 184, 170, 0.34);
+  background:
+    linear-gradient(135deg, rgba(64, 184, 170, 0.18), rgba(196, 154, 74, 0.12)),
+    rgba(239, 226, 195, 0.065);
 }
 
 .story-action:hover:not(:disabled) {
@@ -1890,6 +1895,7 @@ button {
 @media (min-width: 960px) {
   .home-atlas {
     grid-template-rows: minmax(150px, 0.38fr) minmax(0, 1fr) auto;
+    min-height: calc(100dvh - 72px);
     height: calc(100dvh - 72px);
     padding: 16px 0 24px;
   }
@@ -1912,11 +1918,14 @@ button {
     grid-column: 1;
     grid-row: 2;
     align-self: stretch;
+    display: flex;
+    flex-direction: column;
     overflow: visible;
   }
 
   .home-map-metrics {
-    margin-top: 4px;
+    flex: 0 0 auto;
+    margin-top: 6px;
     justify-content: flex-start;
   }
 
@@ -1930,6 +1939,8 @@ button {
   .desktop-detail {
     grid-column: 2;
     grid-row: 2 / span 2;
+    align-self: stretch;
+    overflow: hidden;
   }
 
   .home-regions .story-share-panel {
@@ -1945,7 +1956,9 @@ button {
   .home-map .map-panel {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
     border: 0;
     background: transparent;
     box-shadow: none;
@@ -1956,6 +1969,7 @@ button {
   .home-map .turkey-map-shell {
     flex: 1;
     min-height: 0;
+    max-height: clamp(180px, 38dvh, 345px);
     overflow: visible;
     border-radius: 0;
     background: transparent !important;
@@ -1964,6 +1978,7 @@ button {
   .home-map .turkey-map {
     height: 100%;
     max-height: 100%;
+    object-fit: contain;
     filter: none;
     transform: none;
     transform-origin: center;
@@ -1984,6 +1999,97 @@ button {
 
   .home-map .map-legend {
     opacity: 0.68;
+  }
+
+  @media (max-width: 1180px), (max-height: 760px) {
+    .home-atlas {
+      grid-template-rows: minmax(118px, 0.28fr) minmax(0, 1fr) auto;
+      gap: 10px 18px;
+    }
+
+    .home-copy h1 {
+      font-size: clamp(38px, 4.4vw, 54px);
+    }
+
+    .home-subtitle {
+      margin-top: 8px;
+    }
+
+    .home-progress .progress-atlas {
+      padding: 14px;
+    }
+
+    .home-map-metrics {
+      margin-top: 3px;
+    }
+
+    .floating-search {
+      margin-top: 5px;
+    }
+
+    .home-regions {
+      grid-template-columns: 1fr;
+      gap: 9px;
+      margin-top: 4px;
+    }
+
+    .home-regions .region-panel {
+      min-width: 0;
+    }
+
+    .home-regions .region-panel h2 {
+      margin-bottom: 7px;
+      font-size: 16px;
+    }
+
+    .home-regions .region-grid {
+      gap: 7px;
+    }
+
+    .home-regions .region-row {
+      flex-basis: 122px;
+      padding: 8px;
+    }
+
+    .home-regions .story-share-panel {
+      display: none;
+    }
+
+    .desktop-detail .city-hero {
+      min-height: 150px;
+    }
+
+    .desktop-detail .city-detail-scroll {
+      max-height: calc(100% - 150px);
+    }
+  }
+
+  .home-map .map-panel--city-selected {
+    gap: 0;
+  }
+
+  .home-map .map-panel--city-selected .turkey-map-shell {
+    display: none;
+  }
+
+  .home-map .map-panel--city-selected .district-preview {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: start;
+    margin-top: 0;
+    padding-top: 8px;
+  }
+
+  .home-map .map-panel--city-selected .district-map-shell {
+    height: clamp(210px, 34dvh, 340px);
+  }
+
+  .home-map .map-panel--city-selected .district-map {
+    height: 100%;
+  }
+
+  .home-map .map-panel--city-selected .district-places-preview {
+    max-height: 92px;
   }
 
   .floating-nav {

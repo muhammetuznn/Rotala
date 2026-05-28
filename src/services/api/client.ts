@@ -1,4 +1,6 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:4000/api'
+const API_BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api')
 const tokenKey = 'rotala.authToken'
 
 export type ApiErrorBody = {
@@ -6,14 +8,16 @@ export type ApiErrorBody = {
 }
 
 export function getAuthToken() {
-  return sessionStorage.getItem(tokenKey)
+  return localStorage.getItem(tokenKey) ?? sessionStorage.getItem(tokenKey)
 }
 
 export function setAuthToken(token: string) {
-  sessionStorage.setItem(tokenKey, token)
+  localStorage.setItem(tokenKey, token)
+  sessionStorage.removeItem(tokenKey)
 }
 
 export function clearAuthToken() {
+  localStorage.removeItem(tokenKey)
   sessionStorage.removeItem(tokenKey)
 }
 
