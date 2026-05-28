@@ -13,7 +13,7 @@ import { getTurkeyStats, toggleCityVisited, togglePlace } from './lib/progress'
 import { useAuth } from './hooks/useAuth'
 import { useBoundaryData } from './hooks/useBoundaryData'
 import { useProgress } from './hooks/useProgress'
-import heroBackground from '../Assets/background.png'
+import heroBackground from './assets/story-poster-cappadocia.png'
 import type { City } from './types/domain'
 
 function App() {
@@ -48,7 +48,7 @@ function App() {
             <div className="home-copy">
               <p className="kicker">Premium seyahat atlası</p>
               <h1>Türkiye’yi keşfet,<br />iz bırak.</h1>
-              <p className="home-subtitle">İllere dokun, haritada iz bırak.</p>
+              <p className="home-subtitle">Geçtiğin şehirler artık sana ait.</p>
             </div>
 
             <div className="home-map">

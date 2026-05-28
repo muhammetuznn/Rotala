@@ -30,6 +30,12 @@ const priorityLabel: Record<string, string> = {
   hidden_gem: 'Saklı Rota',
 }
 
+const visitedCityColors = ['#f0b85d', '#d96f55', '#40b8aa', '#a98be4', '#e7c84f', '#5fb2d6', '#d985b8', '#8fd36f']
+
+function getVisitedCityColor(cityId: number) {
+  return visitedCityColors[cityId % visitedCityColors.length]
+}
+
 export function BoundaryMap({
   districts,
   loading,
@@ -100,6 +106,7 @@ export function BoundaryMap({
               const cityVisited = isCityVisited(city, progress)
               const explore = getCityExplorePercentage(city.id, progress)
               const centroid = provincePath.centroid(feature)
+              const visitedFill = cityVisited ? getVisitedCityColor(city.id) : undefined
               const labelWidth = Math.max(54, city.name.length * 7.5 + 18)
               const labelX = Math.min(900 - labelWidth / 2 - 4, Math.max(labelWidth / 2 + 4, centroid[0]))
               const labelY = Math.min(348, Math.max(16, centroid[1] - 18))
@@ -136,7 +143,11 @@ export function BoundaryMap({
                       pressed && 'province-shape--pressed',
                     )}
                     d={provincePath(feature) ?? undefined}
-                    style={{ transformBox: 'fill-box' }}
+                    style={{
+                      fill: visitedFill,
+                      stroke: visitedFill ? '#fff0c8' : undefined,
+                      transformBox: 'fill-box',
+                    }}
                   />
                   <text
                     aria-hidden="true"

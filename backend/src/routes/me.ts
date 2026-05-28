@@ -1,8 +1,10 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { City } from '../models/City.js'
 import { Place } from '../models/Place.js'
 import { UserCityProgress } from '../models/UserCityProgress.js'
+import { UserCityRating } from '../models/UserCityRating.js'
 import { UserPlaceNote } from '../models/UserPlaceNote.js'
 import { UserPlaceRating } from '../models/UserPlaceRating.js'
 import { UserVisitedPlace } from '../models/UserVisitedPlace.js'
@@ -25,6 +27,12 @@ async function findPlace(placeId: string) {
   const place = await Place.findOne({ placeId }).lean()
   if (!place) throw new HttpError(404, 'Gezilecek yer bulunamadı.')
   return place
+}
+
+async function findCity(cityId: number) {
+  const city = await City.findOne({ cityId }).lean()
+  if (!city) throw new HttpError(404, 'Şehir bulunamadı.')
+  return city
 }
 
 function userIdFrom(req: AuthenticatedRequest) {
@@ -79,6 +87,33 @@ router.post('/cities/:cityId/visited', async (req: AuthenticatedRequest, res, ne
 router.delete('/cities/:cityId/visited', async (req: AuthenticatedRequest, res, next) => {
   try {
     await UserCityProgress.deleteOne({ userId: userIdFrom(req), cityId: Number(req.params.cityId) })
+    res.status(204).send()
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.put('/cities/:cityId/rating', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const userId = userIdFrom(req)
+    const cityId = Number(req.params.cityId)
+    await findCity(cityId)
+    const input = ratingSchema.parse(req.body)
+    const rating = await UserCityRating.findOneAndUpdate(
+      { userId, cityId },
+      { $set: { rating: input.rating } },
+      { new: true, upsert: true },
+    ).lean()
+
+    res.json({ rating })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.delete('/cities/:cityId/rating', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    await UserCityRating.deleteOne({ userId: userIdFrom(req), cityId: Number(req.params.cityId) })
     res.status(204).send()
   } catch (error) {
     next(error)
@@ -184,6 +219,15 @@ router.delete('/places/:placeId/rating', async (req: AuthenticatedRequest, res, 
 router.get('/ratings', async (req: AuthenticatedRequest, res, next) => {
   try {
     const ratings = await UserPlaceRating.find({ userId: userIdFrom(req) }).sort({ updatedAt: -1 }).lean()
+    res.json({ ratings })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/city-ratings', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const ratings = await UserCityRating.find({ userId: userIdFrom(req) }).sort({ updatedAt: -1 }).lean()
     res.json({ ratings })
   } catch (error) {
     next(error)

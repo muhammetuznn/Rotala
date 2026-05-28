@@ -1,9 +1,8 @@
 import { geoMercator, geoPath } from 'd3-geo'
-import { Bookmark, Check, ChevronDown, Flag, Heart, Map, MessageSquare, Star, Trash2, X, MapPin } from 'lucide-react'
+import { Bookmark, Check, ChevronDown, Map, MessageSquare, Star, Trash2, X, MapPin } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  getCityExplorePercentage,
   getCityPlaces,
   getDistrictProgress,
   hasVisitedPlaceInCity,
@@ -12,7 +11,17 @@ import {
 } from '../lib/progress'
 import { districtPercentage, featureCollectionFromFeatures, normalizeTr, provinceFeatureForCity } from '../lib/geo'
 import { deletePlaceNote, getNotes, savePlaceNote } from '../services/notesApi'
-import { deletePlaceRating, getMyRatings, getPlaceRatingSummary, savePlaceRating, type RatingSummary } from '../services/ratingsApi'
+import {
+  deleteCityRating,
+  deletePlaceRating,
+  getCityRatingSummary,
+  getMyCityRatings,
+  getMyRatings,
+  getPlaceRatingSummary,
+  saveCityRating,
+  savePlaceRating,
+  type RatingSummary,
+} from '../services/ratingsApi'
 import heroBackground from '../../Assets/background.png'
 import type { City, Place, UserProgress } from '../types/domain'
 import type { DistrictCollection, ProvinceCollection } from '../types/geo'
@@ -36,6 +45,11 @@ const priorityLabel: Record<string, string> = {
   hidden_gem: 'Saklı Rota',
 }
 
+function formatStarScore(rating: number) {
+  const score = rating / 2
+  return Number.isInteger(score) ? String(score) : score.toFixed(1).replace('.', ',')
+}
+
 export function CityDetailPanel({
   city,
   districts,
@@ -55,6 +69,9 @@ export function CityDetailPanel({
   const [ratingsByPlace, setRatingsByPlace] = useState<Record<string, number>>({})
   const [summariesByPlace, setSummariesByPlace] = useState<Record<string, RatingSummary>>({})
   const [savingPlaceIds, setSavingPlaceIds] = useState<string[]>([])
+  const [cityRating, setCityRating] = useState<number | null>(null)
+  const [cityRatingSummary, setCityRatingSummary] = useState<RatingSummary | null>(null)
+  const [savingCityRating, setSavingCityRating] = useState(false)
   const [placeDataError, setPlaceDataError] = useState('')
   const [districtMapCollapsed, setDistrictMapCollapsed] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -125,9 +142,11 @@ export function CityDetailPanel({
       Promise.all([
         getNotes(),
         getMyRatings(),
+        getMyCityRatings(),
+        getCityRatingSummary(city.id).catch(() => null),
         Promise.all(cityPlaces.map((place) => getPlaceRatingSummary(place.id).catch(() => null))),
       ])
-        .then(([notes, ratings, summaries]) => {
+        .then(([notes, ratings, cityRatings, citySummary, summaries]) => {
           if (cancelled) return
 
           const nextNotes = Object.fromEntries(notes.filter((note) => note.cityId === city.id).map((note) => [note.placeId, note.note ?? '']))
@@ -136,6 +155,8 @@ export function CityDetailPanel({
           setRatingsByPlace(
             Object.fromEntries(ratings.filter((rating) => rating.cityId === city.id).map((rating) => [rating.placeId, rating.rating])),
           )
+          setCityRating(cityRatings.find((rating) => rating.cityId === city.id)?.rating ?? null)
+          setCityRatingSummary(citySummary)
           setSummariesByPlace(
             Object.fromEntries(
               summaries
@@ -160,8 +181,6 @@ export function CityDetailPanel({
   const cityVisited = isCityVisited(city, progress)
   const cityManuallyVisited = isCityManuallyVisited(city, progress)
   const cityHasVisitedPlace = hasVisitedPlaceInCity(city.id, progress)
-  const explore = getCityExplorePercentage(city.id, progress)
-  const completed = cityPlaces.filter((place) => progress.visitedPlaceIds.includes(place.id)).length
 
   function toggleDistrict(district: string) {
     setOpenDistricts((current) =>
@@ -277,6 +296,30 @@ export function CityDetailPanel({
     }
   }
 
+  async function handleCityRatingChange(value: string) {
+    if (!city) return
+
+    setSavingCityRating(true)
+    setPlaceDataError('')
+
+    try {
+      if (!value) {
+        await deleteCityRating(city.id)
+        setCityRating(null)
+      } else {
+        const rating = Number(value)
+        await saveCityRating(city.id, rating)
+        setCityRating(rating)
+      }
+
+      setCityRatingSummary(await getCityRatingSummary(city.id))
+    } catch (error) {
+      setPlaceDataError(error instanceof Error ? error.message : 'Şehir puanı kaydedilemedi.')
+    } finally {
+      setSavingCityRating(false)
+    }
+  }
+
   return (
     <>
       <button
@@ -300,6 +343,59 @@ export function CityDetailPanel({
                   ? 'Checklist nedeniyle gezildi sayılıyor'
                   : 'Henüz gezildi işaretlenmedi'}
             </span>
+            <span>
+              <Star size={15} aria-hidden="true" />
+              {cityRatingSummary?.voteCount
+                ? `Ortalama ${formatStarScore(cityRatingSummary.averageRating ?? 0)}/5 · ${cityRatingSummary.voteCount} kullanıcı`
+                : 'Henüz kullanıcı puanı yok'}
+            </span>
+            {cityRating && <small>Senin puanın: {formatStarScore(cityRating)} yıldız</small>}
+          </div>
+          <div className="city-hero-actions" aria-label={`${city.name} şehir aksiyonları`}>
+            <button
+              aria-label={cityManuallyVisited ? 'Gezildi işaretini kaldır' : cityVisited ? 'Gezildi sayılıyor' : 'Gezildi işaretle'}
+              className={clsx('city-hero-action', cityManuallyVisited && 'city-hero-action--active')}
+              onClick={() => onToggleCityVisited(city.id)}
+              title={cityManuallyVisited ? 'Gezildi' : cityVisited ? 'Gezildi sayılıyor' : 'Gezildi işaretle'}
+              type="button"
+            >
+              <Check size={17} aria-hidden="true" />
+              <span>{cityManuallyVisited ? 'Gezildi' : 'Gezildi işaretle'}</span>
+            </button>
+            <div className="city-inline-rating" role="radiogroup" aria-label={`${city.name} şehir puanı`}>
+              {Array.from({ length: 5 }, (_, index) => {
+                const leftRating = index * 2 + 1
+                const rightRating = leftRating + 1
+                const fillWidth = cityRating ? (cityRating >= rightRating ? 100 : cityRating === leftRating ? 50 : 0) : 0
+
+                return (
+                  <span className="city-star-unit" key={leftRating}>
+                    <Star className="city-star-base" size={24} aria-hidden="true" />
+                    <span className="city-star-fill" style={{ width: `${fillWidth}%` }}>
+                      <Star size={24} aria-hidden="true" />
+                    </span>
+                    <button
+                      aria-label={cityRating === leftRating ? `${formatStarScore(leftRating)} yıldızı kaldır` : `${formatStarScore(leftRating)} yıldız ver`}
+                      aria-checked={cityRating === leftRating}
+                      className="city-star-half city-star-half--left"
+                      disabled={savingCityRating}
+                      onClick={() => void handleCityRatingChange(cityRating === leftRating ? '' : String(leftRating))}
+                      role="radio"
+                      type="button"
+                    />
+                    <button
+                      aria-label={cityRating === rightRating ? `${formatStarScore(rightRating)} yıldızı kaldır` : `${formatStarScore(rightRating)} yıldız ver`}
+                      aria-checked={cityRating === rightRating}
+                      className="city-star-half city-star-half--right"
+                      disabled={savingCityRating}
+                      onClick={() => void handleCityRatingChange(cityRating === rightRating ? '' : String(rightRating))}
+                      role="radio"
+                      type="button"
+                    />
+                  </span>
+                )
+              })}
+            </div>
           </div>
           <button
             className="close-detail"
@@ -316,38 +412,6 @@ export function CityDetailPanel({
           onScroll={handleDetailScroll}
           ref={scrollAreaRef}
         >
-          <div className="city-progress-panel">
-            <div>
-              <p>Şehir keşfi</p>
-              <strong>%{explore}</strong>
-              <span>
-                {completed} / {cityPlaces.length} yer tamamlandı
-              </span>
-            </div>
-            <div className="plate-orbit">
-              {city.plate}
-            </div>
-          </div>
-
-          <div className="action-tiles">
-            <button className={clsx('action-tile', cityManuallyVisited && 'action-tile--active')} onClick={() => onToggleCityVisited(city.id)} type="button">
-              <Check size={18} aria-hidden="true" />
-              <span>{cityManuallyVisited ? 'Gezildi' : cityVisited ? 'Gezildi sayılıyor' : 'Gezildi işaretle'}</span>
-            </button>
-            <button className="action-tile" type="button">
-              <Flag size={18} aria-hidden="true" />
-              <span>Gitmek istiyorum</span>
-            </button>
-            <button className="action-tile" type="button">
-              <Heart size={18} aria-hidden="true" />
-              <span>Favori</span>
-            </button>
-            <button className="action-tile" type="button">
-              <MessageSquare size={18} aria-hidden="true" />
-              <span>Not ekle</span>
-            </button>
-          </div>
-
           {city && districtPath && selectedDistrictFeatures.length > 0 && (
             <div
               className={clsx(

@@ -13,6 +13,28 @@ export type UserPlaceRating = {
   rating: number
 }
 
+export type UserCityRating = {
+  cityId: number
+  rating: number
+}
+
+export async function saveCityRating(cityId: number, rating: number) {
+  const response = await apiFetch<{ rating: UserCityRating }>(`/me/cities/${cityId}/rating`, {
+    method: 'PUT',
+    body: JSON.stringify({ rating }),
+  })
+  return response.rating
+}
+
+export async function deleteCityRating(cityId: number) {
+  await apiFetch<void>(`/me/cities/${cityId}/rating`, { method: 'DELETE' })
+}
+
+export async function getMyCityRatings() {
+  const response = await apiFetch<{ ratings: UserCityRating[] }>('/me/city-ratings')
+  return response.ratings
+}
+
 export async function savePlaceRating(placeId: string, rating: number) {
   const response = await apiFetch<{ rating: UserPlaceRating }>(`/me/places/${placeId}/rating`, {
     method: 'PUT',

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { City } from '../models/City.js'
 import { Place } from '../models/Place.js'
-import { UserPlaceRating } from '../models/UserPlaceRating.js'
+import { UserCityRating } from '../models/UserCityRating.js'
 import { HttpError } from '../utils/httpError.js'
 
 const router = Router()
@@ -37,7 +37,7 @@ router.get('/:cityId/places', async (req, res, next) => {
 router.get('/:cityId/rating-summary', async (req, res, next) => {
   try {
     const cityId = Number(req.params.cityId)
-    const [summary] = await UserPlaceRating.aggregate([
+    const [summary] = await UserCityRating.aggregate([
       { $match: { cityId } },
       { $group: { _id: '$cityId', averageRating: { $avg: '$rating' }, voteCount: { $sum: 1 } } },
     ])
