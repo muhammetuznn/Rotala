@@ -922,6 +922,65 @@ button {
   white-space: nowrap;
 }
 
+.city-place-progress {
+  display: grid;
+  gap: 8px;
+  min-height: 46px;
+  padding: 9px 11px;
+  border: 1px solid rgba(196, 154, 74, 0.36);
+  border-radius: 8px;
+  color: var(--ink);
+  background:
+    linear-gradient(135deg, rgba(196, 154, 74, 0.18), rgba(6, 18, 15, 0.68)),
+    rgba(6, 18, 15, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 22px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+.city-place-progress div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.city-place-progress span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+}
+
+.city-place-progress b {
+  flex: 0 0 auto;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.city-place-progress i {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(216, 200, 167, 0.16);
+}
+
+.city-place-progress em {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d8ad5b, #f1d68a);
+}
+
 .city-hero-action:hover,
 .city-hero-action--active {
   transform: translateY(-1px);

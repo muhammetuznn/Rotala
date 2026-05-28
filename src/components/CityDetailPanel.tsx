@@ -187,6 +187,9 @@ export function CityDetailPanel({
   const cityVisited = isCityVisited(city, progress)
   const cityManuallyVisited = isCityManuallyVisited(city, progress)
   const cityHasVisitedPlace = hasVisitedPlaceInCity(city.id, progress)
+  const cityVisitedPlaceCount = cityPlaces.filter((place) => progress.visitedPlaceIds.includes(place.id)).length
+  const cityPlaceCount = cityPlaces.length
+  const cityPlacePercentage = cityPlaceCount > 0 ? Math.round((cityVisitedPlaceCount / cityPlaceCount) * 100) : 0
 
   function toggleDistrict(district: string) {
     setOpenDistricts((current) =>
@@ -358,6 +361,15 @@ export function CityDetailPanel({
             {cityRating && <small>Senin puanın: {formatStarScore(cityRating)} yıldız</small>}
           </div>
           <div className="city-hero-actions" aria-label={`${city.name} şehir aksiyonları`}>
+            <div className="city-place-progress" aria-label={`${city.name} gezilecek yer ilerlemesi`}>
+              <div>
+                <span>Gezilecek yer</span>
+                <b>{cityVisitedPlaceCount}/{cityPlaceCount}</b>
+              </div>
+              <i>
+                <em style={{ width: `${cityPlacePercentage}%` }} />
+              </i>
+            </div>
             <button
               aria-label={cityManuallyVisited ? 'Gezildi işaretini kaldır' : cityVisited ? 'Gezildi sayılıyor' : 'Gezildi işaretle'}
               className={clsx('city-hero-action', cityManuallyVisited && 'city-hero-action--active')}
